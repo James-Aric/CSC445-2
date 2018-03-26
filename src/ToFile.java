@@ -75,7 +75,7 @@ public class ToFile {
 
 
 
-    int length = 12 + byteLength;
+    int length = 12 + 200;
     byte buf[];// = new byte[12 + data.get(0).length]; //allocate this big enough to hold the RTP header + audio data
     byte temp[];
     byte combined[];
@@ -107,12 +107,13 @@ public class ToFile {
         sequenceNumber++;
 
         temp = bytes.get(num);
-        combined = new byte[length];
+        combined = new byte[12 + temp.length];
 
         System.arraycopy(buf, 0, combined, 0, buf.length);
         System.arraycopy(temp, 0, combined, buf.length, temp.length);
 
         sendPacket = new DatagramPacket(combined, combined.length);
+        sendPacket.setPort(3000);
         packets.add(sendPacket);
     }
     /////////////////

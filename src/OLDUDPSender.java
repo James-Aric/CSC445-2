@@ -3,7 +3,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-public class UDPSender {
+public class OLDUDPSender {
     static String ip = "129.3.213.22";
     static int packetNum = 1024;
     static int packetSize = 1000;

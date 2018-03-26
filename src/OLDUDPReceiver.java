@@ -3,7 +3,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-public class UDPReceiver {
+public class OLDUDPReceiver {
 
     //Variables to alter packet size/number
     static int packetSize = 1000;
