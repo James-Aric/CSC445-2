@@ -158,7 +158,7 @@ public class ToFile {
         return vals;
     }
 
-    public ArrayList<byte[]> udpNew() throws IOException {
+    /*public ArrayList<byte[]> udpNew() throws IOException {
         ArrayList<ArrayList<Integer>> vals = new ArrayList<>();
         for(int i = 0; i < siteImage.getWidth(); i++){
             vals.add(new ArrayList<>());
@@ -183,6 +183,19 @@ public class ToFile {
             byteVals.add(bytes);
         }
         return byteVals;
-    }
+    }*/
 
+    public ArrayList<String> udpNew() {
+        ArrayList<String> sendData = new ArrayList<>();
+        String temp = "";
+        for(int i = 0; i < siteImage.getHeight(); i++){
+            temp+= i + " ";
+            for(int j = 0; j < siteImage.getWidth(); j++){
+                temp += siteImage.getRGB(i, j) + " ";
+            }
+            sendData.add(temp);
+            temp = "";
+        }
+        return sendData;
+    }
 }

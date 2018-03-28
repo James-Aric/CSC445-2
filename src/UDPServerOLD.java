@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class UDPServerOLD {
 
     public static void main(String[]args) {
-        final int port = 3005;
+        /*final int port = 3005;
         ToFile data;
         ArrayList<byte[]> byteList;
         //System.out.println(sendPackets.size());
@@ -61,6 +61,6 @@ public class UDPServerOLD {
         }
         catch (Exception e){
             e.printStackTrace();
-        }
+        }*/
     }
 }
