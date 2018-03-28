@@ -18,8 +18,12 @@ public class UDPClient {
             server = new DatagramSocket();
             server.send(urlPacket);
             System.out.println("Sent URL");
+            //ack
+            server.receive(new DatagramPacket(new byte[1], 1));
+            System.out.println("recieved Ack");
             //receive acknowledgement and packet with the size of the data.
-            dataPacket = new DatagramPacket(new byte[3], 3, urlPacket.getAddress(), port);
+
+            dataPacket = new DatagramPacket(new byte[3], 3);
             //FAILING HERE?
             server.receive(dataPacket);
             System.out.println("Received data");

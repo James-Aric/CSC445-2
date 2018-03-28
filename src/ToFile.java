@@ -2,32 +2,67 @@
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class ToFile {
-    BufferedImage siteImage;
-    String url = "https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg";
-    int byteLength;
+    private BufferedImage siteImage;
+    private String url;// = "https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg";
+    //private int byteLength;
+    private ArrayList<int[]> data;
 
-    public ToFile(String url) {
+
+    private ArrayList<DatagramPacket> packetsUDP;
+    private DatagramPacket sendPacketUDP;
+    private ArrayList<byte[]> packetsTCP;
+
+    private ArrayList<byte[]> bytes = new ArrayList<>();
+
+    //int[] to byte[]
+    private ByteBuffer byteBuffer;
+    private IntBuffer intBuffer;
+    private byte[] array;
+
+    //HEADER STUFF
+    private int version = 2;
+    private int padding = 0;
+    private int extension = 0;
+    private int csrcCount = 1;
+    private int marker = 0;
+    private int payloadType = 8;
+    private int sequenceNumber = 0;
+    private long timestamp = 1;
+
+
+
+    //private int length = 12 + 200;
+    private byte buf[];// = new byte[12 + data.get(0).length]; //allocate this big enough to hold the RTP header + audio data
+    private byte temp[];
+    private byte combined[];
+
+
+
+    public ToFile(String url, int num) {
         this.url = url;
         constructPacketData();
-        constructPackets();
+        if(num == 0) {
+            constructPacketsUDP();
+        }
+        else{
+            //tcpNew();
+        }
     }
 
     public void urlToFile(String url) throws IOException {
         URL site = new URL(url);
         siteImage = ImageIO.read(site);
     }
-
-    ArrayList<int[]> data;
 
     public ArrayList<int[]> constructPacketData() {
         data = new ArrayList<>();
@@ -48,40 +83,15 @@ public class ToFile {
             }
             data.add(col);
         }
-        byteLength = data.size();
+        //byteLength = data.size();
         return data;
     }
 
 
-    ArrayList<DatagramPacket> packets;
-    DatagramPacket sendPacket;
-
-    ArrayList<byte[]> bytes = new ArrayList<>();
-
-    //int[] to byte[]
-    ByteBuffer byteBuffer;
-    IntBuffer intBuffer;
-    byte[] array;
-
-    //HEADER STUFF
-    int version = 2;
-    int padding = 0;
-    int extension = 0;
-    int csrcCount = 1;
-    int marker = 0;
-    int payloadType = 8;
-    int sequenceNumber = 0;
-    long timestamp = 1;
 
 
 
-    int length = 12 + 200;
-    byte buf[];// = new byte[12 + data.get(0).length]; //allocate this big enough to hold the RTP header + audio data
-    byte temp[];
-    byte combined[];
-
-
-    public void packetCreation(int num) {
+    public void packetCreationUDP(int num) {
         buf = new byte[12]; //allocate this big enough to hold the RTP header + audio data
         //assemble the first bytes according to the RTP spec (note, the spec marks version as bit 0 and 1, but
         //this is really the high bits of the first byte ...
@@ -112,15 +122,13 @@ public class ToFile {
         System.arraycopy(buf, 0, combined, 0, buf.length);
         System.arraycopy(temp, 0, combined, buf.length, temp.length);
 
-        sendPacket = new DatagramPacket(combined, combined.length);
-        sendPacket.setPort(3000);
-        packets.add(sendPacket);
+        sendPacketUDP = new DatagramPacket(combined, combined.length);
+        sendPacketUDP.setPort(3000);
+        packetsUDP.add(sendPacketUDP);
     }
-    /////////////////
 
-
-    public void constructPackets() {
-        packets = new ArrayList<>();
+    public void constructPacketsUDP() {
+        packetsUDP = new ArrayList<>();
         for(int i = 0; i < data.size(); i++){
             byteBuffer = ByteBuffer.allocate(data.size() * 4);
             intBuffer = byteBuffer.asIntBuffer();
@@ -130,18 +138,51 @@ public class ToFile {
             bytes.add(array);
             /*sendPacket = new DatagramPacket(array, array.length);
             packets.add(sendPacket);*/
-            packetCreation(i);
+            packetCreationUDP(i);
         }
     }
 
-    public ArrayList<DatagramPacket> getPackets(){
-        return packets;
+    public ArrayList<DatagramPacket> getPacketsUDP(){
+        return packetsUDP;
     }
 
+    public ArrayList<ArrayList<Integer>> tcpNew(){
+        ArrayList<ArrayList<Integer>> vals = new ArrayList<>();
+        for(int i = 0; i < siteImage.getWidth(); i++){
+            vals.add(new ArrayList<>());
+            vals.get(i).add(i);
+            for(int j = 0; j < siteImage.getHeight(); j++){
+                vals.get(i).add(siteImage.getRGB(i,j));
+            }
+        }
+        return vals;
+    }
 
+    public ArrayList<byte[]> udpNew() throws IOException {
+        ArrayList<ArrayList<Integer>> vals = new ArrayList<>();
+        for(int i = 0; i < siteImage.getWidth(); i++){
+            vals.add(new ArrayList<>());
+            vals.get(i).add(i);
+            for(int j = 0; j < siteImage.getHeight(); j++){
+                vals.get(i).add(siteImage.getRGB(i,j));
+            }
+        }
+        ArrayList<byte[]> byteVals = new ArrayList<>();
 
-
-
-
+        // write to byte array
+        ByteArrayOutputStream baos;
+        DataOutputStream out;
+        byte[] bytes;
+        for(int i = 0; i < vals.size(); i++) {
+            baos = new ByteArrayOutputStream();
+            out = new DataOutputStream(baos);
+            for (int element : vals.get(i)) {
+                out.writeInt(element);
+            }
+            bytes = baos.toByteArray();
+            byteVals.add(bytes);
+        }
+        return byteVals;
+    }
 
 }
