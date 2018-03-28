@@ -15,10 +15,11 @@ import java.util.ArrayList;
 public class TCPClient {
 
     public static void main(String[]args) throws Exception{
-        //String url = "https://i-cdn.phonearena.com/images/article/50441-image/Hey-were-not-trying-to-pick-you-up-were-just-snapping-a-picture-using-Google-Glass.jpg";
-        String url = "https://www.bigstockphoto.com/images/homepage/module-4.jpg";
+        System.out.println(InetAddress.getLocalHost());
+        String url = "https://i-cdn.phonearena.com/images/article/50441-image/Hey-were-not-trying-to-pick-you-up-were-just-snapping-a-picture-using-Google-Glass.jpg";
+        //String url = "https://www.bigstockphoto.com/images/homepage/module-4.jpg";
         //String ip = InetAddress.getLocalHost().toString();
-        String ip = "129.3.158.31";
+        String ip = "129.3.152.53";
         int port = 2525;
         Socket clientSocket = new Socket(ip, port);
         DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
