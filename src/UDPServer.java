@@ -24,6 +24,7 @@ public class UDPServer {
             client.receive(urlPacket);
             System.out.println("received url");
             url = new String(urlPacket.getData());
+            System.out.println(urlPacket.getAddress());
             data = new ToFile(url, 0);
             byteList = data.udpNew();
             System.out.println(url);
@@ -37,7 +38,7 @@ public class UDPServer {
             //System.out.println("byte: " + (temp[1] + 256*temp[0]) + "     actual: " + byteList.get(0).length);
             //System.out.println("byte: " + (temp[2]& 0xFF) + "     actual: " + sendPackets.size());
             dataPacket = new DatagramPacket(temp, 3, urlPacket.getAddress(), port);
-            client.send(new DatagramPacket(new byte[1], 1, InetAddress.getLocalHost(), port));
+            client.send(new DatagramPacket(new byte[1], 1, urlPacket.getAddress(), port));
             client.send(dataPacket);
             System.out.println("Sent data size + packet amount");
             ack = new DatagramPacket(new byte[1],1, urlPacket.getAddress(), port);

@@ -16,6 +16,7 @@ public class TCPServer {
     public static void main(String[]args) throws Exception{
         String ip = InetAddress.getLocalHost().toString();
         int port = 2525;
+        final int windowSize = 10;
         ServerSocket serverSocket = new ServerSocket(port);
         Socket connection = serverSocket.accept();
         DataOutputStream outToServer = new DataOutputStream(connection.getOutputStream());
@@ -42,11 +43,32 @@ public class TCPServer {
         outToServer.writeInt(vals.size());
         //fourth read
         inFromServer.readInt();
-
-        for(int i = 0; i < vals.size(); i++){
-            valsToClient.writeObject(vals.get(i));
-            inFromServer.readInt();
-            System.out.println("Success!" + i);
+        boolean sequential = false;
+        if(sequential) {
+            for (int i = 0; i < vals.size(); i++) {
+                valsToClient.writeObject(vals.get(i));
+                inFromServer.readInt();
+                System.out.println("Success!" + i);
+            }
+        }
+        else{
+            String result = "";
+            ArrayList<Integer> packetNumsToSend = new ArrayList<>();
+            for(int i = 0; i < vals.size(); i++){
+                packetNumsToSend.add(i);
+            }
+            while(packetNumsToSend.size() != 0){
+                for(int i = 0; i < windowSize; i++) {
+                    valsToClient.writeObject(vals.get(packetNumsToSend.get(i)));
+                }
+                result = inFromServer.readUTF();
+                String[] resultArray = result.split(" ");
+                for(String temp: resultArray){
+                    packetNumsToSend.remove((Integer)Integer.parseInt(temp));
+                }
+                System.out.println(result);
+            }
         }
     }
+
 }

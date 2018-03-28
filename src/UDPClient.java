@@ -7,12 +7,14 @@ import java.util.ArrayList;
 public class UDPClient {
     public static void main(String[]args) throws UnknownHostException{
         final int port = 3005;
+        System.out.println(InetAddress.getLocalHost());
         DatagramSocket server;
+        String ip = "129.3.152.53";
         DatagramPacket dataPacket;
         DatagramPacket recievedPacket;
         ArrayList<byte[]> recievedBytes = new ArrayList<>();
         String url = "https://i-cdn.phonearena.com/images/article/50441-image/Hey-were-not-trying-to-pick-you-up-were-just-snapping-a-picture-using-Google-Glass.jpg";
-        DatagramPacket urlPacket = new DatagramPacket(url.getBytes(), url.getBytes().length, InetAddress.getLocalHost(), port);
+        DatagramPacket urlPacket = new DatagramPacket(url.getBytes(), url.getBytes().length, InetAddress.getByName(ip), port);
         try{
             //connect to server, send the url;
             server = new DatagramSocket();
@@ -31,7 +33,7 @@ public class UDPClient {
             byte[] dataSize = new byte[dataPacket.getData()[0]];
             int packetNum = dataPacket.getData()[1];
             System.out.println(packetNum);
-            recievedPacket = new DatagramPacket(dataSize, dataSize.length, InetAddress.getLocalHost(), port);
+            recievedPacket = new DatagramPacket(dataSize, dataSize.length, urlPacket.getAddress(), port);
             System.out.println(dataSize.length);
             server.send(new DatagramPacket(new byte[1], 1, recievedPacket.getAddress(), port));
 
