@@ -24,7 +24,7 @@ public class UDPServer {
         try {
             server = new DatagramSocket(thisPort);
             ack = new DatagramPacket(new byte[1], 1);
-            System.out.printf("Waiting on udp:%s:%d%n", InetAddress.getLocalHost().getHostAddress(), thisPort);
+            System.out.printf("Waiting on udp: " + Inet4Address.getLocalHost().getHostAddress() + "    " + Inet6Address.getLocalHost().getHostAddress());
             server.receive(ack);
             System.out.println("Received connection test");
             server.send(ack);
@@ -34,11 +34,12 @@ public class UDPServer {
 
             server.receive(urlPack);
             ip = urlPack.getAddress().toString();
+            ip = ip.substring(1,ip.length());
             if(ipv4){
-                sendAddress = (Inet4Address) Inet4Address.getByName(ip);
+                sendAddress = Inet4Address.getByName(ip);
             }
             else{
-                sendAddress = (Inet6Address) Inet6Address.getByName(ip);
+                sendAddress = Inet6Address.getByName(ip);
             }
             System.out.println("Received URL");
             server.send(ack);
@@ -46,10 +47,13 @@ public class UDPServer {
             url = new String(urlPack.getData());
             ///ALL ABOVE THIS WORKS PROPERLY
             server.receive(ack);
+            System.out.println("Received ACK");
             //THIS IS WHERE THE FUN BEGINS
 
-            toFile = new ToFile(url, 0);
-            ArrayList<byte[]> bytesToSend = toFile.udpNew2();
+            toFile = new ToFile(url);
+            System.out.println("Created ToFile Object");
+            ArrayList<byte[]> bytesToSend = toFile.udpData();
+            System.out.println("Created files");
             ArrayList<Integer> packetNumsToSend = new ArrayList<>();
             for(int i = 0; i < bytesToSend.size(); i++){
                 packetNumsToSend.add(i);
@@ -64,6 +68,7 @@ public class UDPServer {
             for(int i = 0; i < 8; i++){
                 temp[i+4] = dimensions[i];
             }
+            System.out.println("Created metadata");
             data = new DatagramPacket(temp, 12, sendAddress, urlPack.getPort());
             server.send(data);
             System.out.println("Sent metadata");
@@ -71,12 +76,17 @@ public class UDPServer {
             System.out.println("Received ack");
 
             if(sequential){
+                server.setSoTimeout(5);
                 for(int i = 0; i < packetCount; i++){
-                    data = new DatagramPacket(bytesToSend.get(i), bytesToSend.get(i).length, sendAddress, urlPack.getPort());
-                    server.send(data);
-                    System.out.println("Sent packet");
-                    server.receive(ack);
-                    System.out.println("Received ack");
+                    try {
+                        data = new DatagramPacket(bytesToSend.get(i), bytesToSend.get(i).length, sendAddress, urlPack.getPort());
+                        server.send(data);
+                        //System.out.println("Sent packet");
+                        server.receive(ack);
+                        //System.out.println("Received ack");
+                    }catch(Exception e){
+                        i--;
+                    }
                 }
             }
             else{
@@ -106,7 +116,7 @@ public class UDPServer {
 
                     }
                     else {
-                        System.out.println(result + "    " + counter);
+                        //System.out.println(result + "    " + counter);
                     }
                     result = "";
                     counter++;

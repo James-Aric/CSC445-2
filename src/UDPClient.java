@@ -8,6 +8,7 @@ import java.util.ArrayList;
 public class UDPClient {
     String url;
     boolean ipv4, sequential, drops;
+    private long startTime;
     public UDPClient(String url, boolean ipv4, boolean sequential, boolean drops){
        this.url = url;
        this.ipv4 = ipv4;
@@ -18,16 +19,16 @@ public class UDPClient {
 
 
     public void run() throws UnknownHostException{
-        String ip = "129.3.154.157";
+        String ip = "pi.cs.oswego.edu";
         final int windowSize = 4;
         final int sendPort = 3007;
         final int thisPort = 3008;
         int width = 0, height = 0;
         InetAddress sendAddress;
         if (ipv4) {
-            sendAddress = (Inet4Address) Inet4Address.getByName(ip);
+            sendAddress = Inet4Address.getByName(ip);
         } else {
-            sendAddress = (Inet6Address) Inet6Address.getByName(ip);
+            sendAddress = Inet6Address.getByName(ip);
         }
         //String url = "https://i-cdn.phonearena.com/images/article/50441-image/Hey-were-not-trying-to-pick-you-up-were-just-snapping-a-picture-using-Google-Glass.jpg";
         String url = "http://cheb-room.ru/uploads/cheb/2016/11/w9RC4W-QqXw-200x200.jpg";
@@ -75,15 +76,25 @@ public class UDPClient {
             for (int i = 0; i < packetCount; i++) {
                 windowData[i] = null;
             }
-
+            int dropCheck;
+            byte[] dropAck;
+            startTime = System.nanoTime();
             if (sequential) {
                 for (int i = 0; i < packetCount; i++) {
                     data = new DatagramPacket(new byte[516], 516);
                     client.receive(data);
-                    System.out.println("Received: " + i);
-                    receivedData.add(data.getData());
-                    client.send(ack);
+                    dropCheck = (int)(Math.random() * 100)+1;
+                    if(drops && dropCheck == 1){
+                        System.out.println("DROPPED");
+                        i--;
+                    }
+                    else{
+                        //System.out.println("Received: " + i);
+                        receivedData.add(data.getData());
+                        client.send(ack);
+                    }
                 }
+                System.out.println(System.nanoTime() - startTime);
             } else {
                 int count = 0;
                 int num;
@@ -102,20 +113,27 @@ public class UDPClient {
                                 finished = true;
                                 break;
                             }
-                            //System.out.println("Packet received");
-                            sequenceNum = new byte[4];
-                            sequenceNum[0] = data.getData()[0];
-                            sequenceNum[1] = data.getData()[1];
-                            sequenceNum[2] = data.getData()[2];
-                            sequenceNum[3] = data.getData()[3];
-                            bb = ByteBuffer.wrap(sequenceNum);
-                            num = bb.getInt();
-                            if (windowData[num] == null) {
-                                windowData[num] = data.getData();
-                                count++;
-                                result += num + " ";
-                                System.out.println(num + "    " + count);
+                            dropCheck = (int)(Math.random() * 100)+1;
+                            if(drops && dropCheck == 1){
+                                System.out.println("DROPPED");
                             }
+                            else{
+                                sequenceNum = new byte[4];
+                                sequenceNum[0] = data.getData()[0];
+                                sequenceNum[1] = data.getData()[1];
+                                sequenceNum[2] = data.getData()[2];
+                                sequenceNum[3] = data.getData()[3];
+                                bb = ByteBuffer.wrap(sequenceNum);
+                                num = bb.getInt();
+                                if (windowData[num] == null) {
+                                    windowData[num] = data.getData();
+                                    count++;
+                                    result += num + " ";
+                                    //System.out.println(num + "    " + count);
+                                }
+                            }
+                            //System.out.println("Packet received");
+
                             if (count >= packetCount) {
                                 break;
                             }
@@ -132,6 +150,7 @@ public class UDPClient {
                     data = new DatagramPacket(result.getBytes(), result.getBytes().length, sendAddress, ack.getPort());
                     client.send(data);
                 }
+                System.out.println(System.nanoTime() - startTime);
             }
 
         } catch (Exception e) {
@@ -160,7 +179,7 @@ public class UDPClient {
                         byteTest[3] = receivedData.get((i))[j + 3];
                         bb = ByteBuffer.wrap(byteTest);
                         test = bb.getInt();
-                        System.out.println(test);
+                        //System.out.println(test);
                         if(test != 0) {
                             image.setRGB(currentX, currentY, test);
                             currentX++;
