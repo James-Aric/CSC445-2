@@ -1,27 +1,40 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-public class UDPClientNew {
-    public static void main(String[]args) {
-        String ip = "pi.cs.oswego.edu";
-        final int windowSize = 50;
+public class UDPClient {
+    String url;
+    boolean ipv4, sequential, drops;
+    public UDPClient(String url, boolean ipv4, boolean sequential, boolean drops){
+       this.url = url;
+       this.ipv4 = ipv4;
+       this.sequential = sequential;
+       this.drops = drops;
+   }
+
+
+
+    public void run() throws UnknownHostException{
+        String ip = "129.3.154.157";
+        final int windowSize = 4;
         final int sendPort = 3007;
         final int thisPort = 3008;
         int width = 0, height = 0;
-
+        InetAddress sendAddress;
+        if (ipv4) {
+            sendAddress = (Inet4Address) Inet4Address.getByName(ip);
+        } else {
+            sendAddress = (Inet6Address) Inet6Address.getByName(ip);
+        }
         //String url = "https://i-cdn.phonearena.com/images/article/50441-image/Hey-were-not-trying-to-pick-you-up-were-just-snapping-a-picture-using-Google-Glass.jpg";
-        String url = "https://upload.wikimedia.org/wikipedia/commons/c/c9/Moon.jpg";
-        String[] stringsFromServer = new String[0];
+        String url = "http://cheb-room.ru/uploads/cheb/2016/11/w9RC4W-QqXw-200x200.jpg";
+        //String[] stringsFromServer = new String[0];
         DatagramPacket data;
         DatagramPacket ack;
         DatagramSocket client;
-        boolean sequential = false;
         int packetCount = -1;
         ArrayList<byte[]> receivedData = new ArrayList<>();
         byte[][] windowData = new byte[1][1];
@@ -29,13 +42,13 @@ public class UDPClientNew {
         try {
             System.out.printf("Waiting on udp:%s:%d%n", InetAddress.getLocalHost().getHostAddress(), thisPort);
             client = new DatagramSocket(thisPort);
-            ack = new DatagramPacket(new byte[1], 1, InetAddress.getByName(ip), sendPort);
+            ack = new DatagramPacket(new byte[1], 1, sendAddress, sendPort);
             client.send(ack);
             System.out.println("Sent connection test");
             client.receive(ack);
             System.out.println("Received valid connection");
 
-            data = new DatagramPacket(url.getBytes(), url.getBytes().length, ack.getAddress(), sendPort);
+            data = new DatagramPacket(url.getBytes(), url.getBytes().length, sendAddress, sendPort);
 
             client.send(data);
             System.out.println("Sent url");
@@ -59,31 +72,36 @@ public class UDPClientNew {
             byte[] sequenceNum = new byte[4];
 
             windowData = new byte[packetCount][516];
-            for(int i = 0; i < packetCount; i++){
+            for (int i = 0; i < packetCount; i++) {
                 windowData[i] = null;
             }
 
-            int spot;
-            if(sequential){
-                for(int i = 0; i < packetCount; i++){
+            if (sequential) {
+                for (int i = 0; i < packetCount; i++) {
                     data = new DatagramPacket(new byte[516], 516);
                     client.receive(data);
                     System.out.println("Received: " + i);
                     receivedData.add(data.getData());
                     client.send(ack);
                 }
-            }
-            else{
+            } else {
                 int count = 0;
                 int num;
+                boolean finished = false;
                 ByteBuffer bb;
-                client.setSoTimeout(1000);
-                while(count < packetCount - 1) {
+                client.setSoTimeout(250);
+                data = new DatagramPacket(new byte[516], 516);
+                client.receive(data);
+                while (!finished) {
                     String result = "";
-                    for (int i = 0; i < windowSize; i++){
+                    for (int i = 0; i < windowSize; i++) {
                         try {
                             data = new DatagramPacket(new byte[516], 516);
                             client.receive(data);
+                            if (data.getLength() != 516) {
+                                finished = true;
+                                break;
+                            }
                             //System.out.println("Packet received");
                             sequenceNum = new byte[4];
                             sequenceNum[0] = data.getData()[0];
@@ -92,32 +110,33 @@ public class UDPClientNew {
                             sequenceNum[3] = data.getData()[3];
                             bb = ByteBuffer.wrap(sequenceNum);
                             num = bb.getInt();
-                            if(windowData[num] == null){
+                            if (windowData[num] == null) {
                                 windowData[num] = data.getData();
                                 count++;
                                 result += num + " ";
                                 System.out.println(num + "    " + count);
                             }
-                            if(count >= packetCount){
+                            if (count >= packetCount) {
                                 break;
                             }
                             //System.out.println(count);
-                        }
-                        catch (Exception e){
+                        } catch (Exception e) {
                             count--;
                             e.printStackTrace();
                             System.out.println("Packet lost");
                         }
                     }
-                    data = new DatagramPacket(result.getBytes(), result.getBytes().length, ack.getAddress(), ack.getPort());
+                    if (finished) {
+                        break;
+                    }
+                    data = new DatagramPacket(result.getBytes(), result.getBytes().length, sendAddress, ack.getPort());
                     client.send(data);
                 }
             }
 
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
 
 
 
@@ -194,7 +213,7 @@ public class UDPClientNew {
                             break;
                         }
                     }
-                    if (currentX >= image.getWidth() - 1) {
+                    if (currentX >= image.getWidth()) {
                         currentX = 0;
                     }
                 }

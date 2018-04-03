@@ -1,11 +1,17 @@
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.net.*;
 import java.util.ArrayList;
 
-public class UDPServerNew {
-    public static void main(String[]args){
-        final int windowSize = 50;
+public class UDPServer {
+    boolean ipv4, sequential, drops;
+    public UDPServer(boolean ipv4, boolean sequential, boolean drops){
+        this.ipv4 = ipv4;
+        this.sequential = sequential;
+        this.drops = drops;
+    }
+
+    public void run(){
+        String ip;
+        final int windowSize = 4;
         final int sendPort = 3008;
         final int thisPort = 3007;
         DatagramPacket data;
@@ -14,7 +20,7 @@ public class UDPServerNew {
         DatagramSocket server;
         ToFile toFile;
         String url;
-        boolean sequential = false;
+        InetAddress sendAddress;
         try {
             server = new DatagramSocket(thisPort);
             ack = new DatagramPacket(new byte[1], 1);
@@ -27,6 +33,13 @@ public class UDPServerNew {
             urlPack = new DatagramPacket(new byte[200], 200);
 
             server.receive(urlPack);
+            ip = urlPack.getAddress().toString();
+            if(ipv4){
+                sendAddress = (Inet4Address) Inet4Address.getByName(ip);
+            }
+            else{
+                sendAddress = (Inet6Address) Inet6Address.getByName(ip);
+            }
             System.out.println("Received URL");
             server.send(ack);
             System.out.println("Sent ack");
@@ -51,7 +64,7 @@ public class UDPServerNew {
             for(int i = 0; i < 8; i++){
                 temp[i+4] = dimensions[i];
             }
-            data = new DatagramPacket(temp, 12, urlPack.getAddress(), urlPack.getPort());
+            data = new DatagramPacket(temp, 12, sendAddress, urlPack.getPort());
             server.send(data);
             System.out.println("Sent metadata");
             server.receive(data);
@@ -59,7 +72,7 @@ public class UDPServerNew {
 
             if(sequential){
                 for(int i = 0; i < packetCount; i++){
-                    data = new DatagramPacket(bytesToSend.get(i), bytesToSend.get(i).length, urlPack.getAddress(), urlPack.getPort());
+                    data = new DatagramPacket(bytesToSend.get(i), bytesToSend.get(i).length, sendAddress, urlPack.getPort());
                     server.send(data);
                     System.out.println("Sent packet");
                     server.receive(ack);
@@ -70,11 +83,15 @@ public class UDPServerNew {
                 String result;
                 String splitResult[];
                 int test;
+                data = new DatagramPacket(bytesToSend.get(0), bytesToSend.get(0).length, sendAddress, urlPack.getPort());
+                server.send(data);
+                int counter = 0;
                 while(packetNumsToSend.size() != 0){
+
                     for(int i = 0; i < windowSize; i++){
                         if(packetNumsToSend.size() > i) {
                             test = packetNumsToSend.get(i);
-                            data = new DatagramPacket(bytesToSend.get(test), bytesToSend.get(test).length, urlPack.getAddress(), urlPack.getPort());
+                            data = new DatagramPacket(bytesToSend.get(test), bytesToSend.get(test).length, sendAddress, urlPack.getPort());
                             server.send(data);
                         }
                     }
@@ -85,9 +102,16 @@ public class UDPServerNew {
                     for(int i = 0; i < splitResult.length - 1; i++){
                         packetNumsToSend.remove((Integer) Integer.parseInt(splitResult[i].trim()));
                     }
-                    System.out.println(result);
+                    if(result.equals(" ")){
+
+                    }
+                    else {
+                        System.out.println(result + "    " + counter);
+                    }
                     result = "";
+                    counter++;
                 }
+                server.send(new DatagramPacket(new byte[4], 4, sendAddress, urlPack.getPort()));
             }
             System.out.println("test");
 
