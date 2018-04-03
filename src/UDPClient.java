@@ -4,26 +4,29 @@ import java.awt.image.BufferedImage;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-public class UDPClient {
-    public static void main(String[]args){
-        String ip = "129.3.154.126";
-        final int sendPort = 3005;
-        final int thisPort = 3006;
-        String url = "https://i-cdn.phonearena.com/images/article/50441-image/Hey-were-not-trying-to-pick-you-up-were-just-snapping-a-picture-using-Google-Glass.jpg";
+public class UDPClientNew {
+    public static void main(String[]args) {
+        String ip = "pi.cs.oswego.edu";
+        final int windowSize = 50;
+        final int sendPort = 3007;
+        final int thisPort = 3008;
+        int width = 0, height = 0;
 
-
+        //String url = "https://i-cdn.phonearena.com/images/article/50441-image/Hey-were-not-trying-to-pick-you-up-were-just-snapping-a-picture-using-Google-Glass.jpg";
+        String url = "https://upload.wikimedia.org/wikipedia/commons/c/c9/Moon.jpg";
+        String[] stringsFromServer = new String[0];
         DatagramPacket data;
         DatagramPacket ack;
         DatagramSocket client;
-        boolean sequential = true;
-        ArrayList<String> receivedPackets = new ArrayList<>();
+        boolean sequential = false;
         int packetCount = -1;
-        int packetSize = -1;
-        String[] windowPackets = new String[1];
+        ArrayList<byte[]> receivedData = new ArrayList<>();
+        byte[][] windowData = new byte[1][1];
 
-        try{
+        try {
             System.out.printf("Waiting on udp:%s:%d%n", InetAddress.getLocalHost().getHostAddress(), thisPort);
             client = new DatagramSocket(thisPort);
             ack = new DatagramPacket(new byte[1], 1, InetAddress.getByName(ip), sendPort);
@@ -44,60 +47,116 @@ public class UDPClient {
             //THIS IS WHERE THE FUN BEGINS
 
 
-            data = new DatagramPacket(new byte[20], 20);
+            data = new DatagramPacket(new byte[12], 12);
             client.receive(data);
-            System.out.println("Received packetCount and packetSize: " + new String(data.getData()));
-            String[] metaData = new String(data.getData()).split(" ");
+            int[] countAndDimensions = bytesToInts(data.getData());
+            packetCount = countAndDimensions[0];
+            width = countAndDimensions[1];
+            height = countAndDimensions[2];
+
+            System.out.println("Received packetCount: " + packetCount + "    Width: " + width + "     Height: " + height);
             client.send(ack);
-            System.out.println("Sent ack");
-            packetCount = Integer.parseInt(metaData[0]);
-            packetSize = Integer.parseInt(metaData[1].trim());
+            byte[] sequenceNum = new byte[4];
 
+            windowData = new byte[packetCount][516];
+            for(int i = 0; i < packetCount; i++){
+                windowData[i] = null;
+            }
 
-
+            int spot;
             if(sequential){
-                data = new DatagramPacket(new byte[packetSize], packetSize);
                 for(int i = 0; i < packetCount; i++){
+                    data = new DatagramPacket(new byte[516], 516);
                     client.receive(data);
                     System.out.println("Received: " + i);
-                    receivedPackets.add(new String(data.getData()));
+                    receivedData.add(data.getData());
                     client.send(ack);
                 }
-                System.out.println("SUCCESS!!!");
             }
             else{
-                data = new DatagramPacket(new byte[packetSize], packetSize);
-                //WRITE SLIDING WINDOW FOR UDP YOURE ALMOST THEEEERRRRREEEEEEE
+                int count = 0;
+                int num;
+                ByteBuffer bb;
+                client.setSoTimeout(1000);
+                while(count < packetCount - 1) {
+                    String result = "";
+                    for (int i = 0; i < windowSize; i++){
+                        try {
+                            data = new DatagramPacket(new byte[516], 516);
+                            client.receive(data);
+                            //System.out.println("Packet received");
+                            sequenceNum = new byte[4];
+                            sequenceNum[0] = data.getData()[0];
+                            sequenceNum[1] = data.getData()[1];
+                            sequenceNum[2] = data.getData()[2];
+                            sequenceNum[3] = data.getData()[3];
+                            bb = ByteBuffer.wrap(sequenceNum);
+                            num = bb.getInt();
+                            if(windowData[num] == null){
+                                windowData[num] = data.getData();
+                                count++;
+                                result += num + " ";
+                                System.out.println(num + "    " + count);
+                            }
+                            if(count >= packetCount){
+                                break;
+                            }
+                            //System.out.println(count);
+                        }
+                        catch (Exception e){
+                            count--;
+                            e.printStackTrace();
+                            System.out.println("Packet lost");
+                        }
+                    }
+                    data = new DatagramPacket(result.getBytes(), result.getBytes().length, ack.getAddress(), ack.getPort());
+                    client.send(data);
+                }
             }
 
-        }catch(Exception e){
+        }catch (Exception e){
             e.printStackTrace();
         }
 
 
 
 
-        //DISPLAYING IMAGE
 
 
 
         if(sequential) {
             try {
-                String temp[];
-                BufferedImage image = new BufferedImage(receivedPackets.size(), receivedPackets.get(0).split(" ").length - 1, BufferedImage.TYPE_INT_RGB);
-                for (int i = 0; i < packetCount; i++) {
-                    temp = receivedPackets.get(i).split(" ");
+                int test;
+                byte[] byteTest = new byte[4];
+                ByteBuffer bb;
+                BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                int currentX = 0;
+                int currentY = 0;
+                for (int i = 0; i < receivedData.size(); i++) {
                     //System.out.println(temp.length);
-                    for (int j = 0; j < image.getWidth(); j++) {
-                        if(temp[j+1].trim().equals("")){
-
+                    for (int j = 4; j < 516; j+=4) {
+                        byteTest[0] = receivedData.get((i))[j];
+                        byteTest[1] = receivedData.get((i))[j + 1];
+                        byteTest[2] = receivedData.get((i))[j + 2];
+                        byteTest[3] = receivedData.get((i))[j + 3];
+                        bb = ByteBuffer.wrap(byteTest);
+                        test = bb.getInt();
+                        System.out.println(test);
+                        if(test != 0) {
+                            image.setRGB(currentX, currentY, test);
+                            currentX++;
                         }
-                        else {
-                            image.setRGB(i, j, Integer.parseInt(temp[j + 1].trim()));
+                        if(currentX == image.getWidth()){
+                            currentY++;
+                            break;
                         }
+                    }
+                    if(currentX >= image.getWidth() -1) {
+                        currentX = 0;
                     }
                 }
                 JFrame frame = new JFrame();
+
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.getContentPane().setLayout(new FlowLayout());
                 frame.getContentPane().add(new JLabel(new ImageIcon(image)));
@@ -108,23 +167,39 @@ public class UDPClient {
                 e.printStackTrace();
             }
         }
-        else{
+        else {
             try {
-                String temp[];
-                BufferedImage image = new BufferedImage(receivedPackets.size(), receivedPackets.get(0).split(" ").length - 1, BufferedImage.TYPE_INT_RGB);
+                int test;
+                byte[] byteTest = new byte[4];
+                ByteBuffer bb;
+                BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                int currentX = 0;
+                int currentY = 0;
                 for (int i = 0; i < packetCount; i++) {
-                    temp = receivedPackets.get(i).split(" ");
                     //System.out.println(temp.length);
-                    for (int j = 0; j < image.getWidth(); j++) {
-                        if(temp[j+1].trim().equals("")){
-
+                    for (int j = 4; j < 516; j += 4) {
+                        byteTest[0] = windowData[i][j];
+                        byteTest[1] = windowData[i][j+1];
+                        byteTest[2] = windowData[i][j+2];
+                        byteTest[3] = windowData[i][j+3];
+                        bb = ByteBuffer.wrap(byteTest);
+                        test = bb.getInt();
+                        //System.out.println(test);
+                        if (test != 0) {
+                            image.setRGB(currentX, currentY, test);
+                            currentX++;
                         }
-                        else {
-                            image.setRGB(i, j, Integer.parseInt(temp[j + 1].trim()));
+                        if (currentX == image.getWidth()) {
+                            currentY++;
+                            break;
                         }
+                    }
+                    if (currentX >= image.getWidth() - 1) {
+                        currentX = 0;
                     }
                 }
                 JFrame frame = new JFrame();
+
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.getContentPane().setLayout(new FlowLayout());
                 frame.getContentPane().add(new JLabel(new ImageIcon(image)));
@@ -135,7 +210,35 @@ public class UDPClient {
                 e.printStackTrace();
             }
         }
+    }
 
-
+    public static int[] bytesToInts(byte[] bytes){
+        int[] countAndDimensions = new int[3];
+        ByteBuffer bb;
+        byte[] temp;
+        for(int i = 0; i < 12; i+=4){
+            temp = new byte[4];
+            temp[0] = bytes[i];
+            temp[1] = bytes[i + 1];
+            temp[2] = bytes[i + 2];
+            temp[3] = bytes[i + 3];
+            bb = ByteBuffer.wrap(temp);
+            if(i == 0){
+                countAndDimensions[0] = bb.getInt();
+                System.out.println(countAndDimensions[0]);
+            }
+            else if(i == 4){
+                countAndDimensions[1] = bb.getInt();
+                System.out.println(countAndDimensions[1]);
+            }
+            else if(i == 8){
+                countAndDimensions[2] = bb.getInt();
+                System.out.println(countAndDimensions[2]);
+            }
+            else{
+                System.out.println("Error?");
+            }
+        }
+        return countAndDimensions;
     }
 }
