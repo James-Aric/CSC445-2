@@ -112,8 +112,7 @@ public class UDPServer {
                 }
                 server.send(new DatagramPacket(new byte[4], 4, sendAddress, urlPack.getPort()));
             }
-            System.out.println("test");
-
+            System.out.println("Finished!");
         }catch (Exception e){
             e.printStackTrace();
         }
