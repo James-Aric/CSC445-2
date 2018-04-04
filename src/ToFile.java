@@ -1,53 +1,19 @@
-//import org.apache.commons.io.FileUtils;
-
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.DatagramPacket;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 
 public class ToFile {
     private BufferedImage siteImage;
-    private String url;// = "https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg";
-    //private int byteLength;
-    private ArrayList<int[]> data;
+    private String url;
 
-
-    private ArrayList<DatagramPacket> packetsUDP;
-    private DatagramPacket sendPacketUDP;
-    private ArrayList<byte[]> packetsTCP;
-
-    private ArrayList<byte[]> bytes = new ArrayList<>();
-
-    //int[] to byte[]
-    private ByteBuffer byteBuffer;
-    private IntBuffer intBuffer;
-    private byte[] array;
 
     //HEADER STUFF
-    private int version = 2;
-    private int padding = 0;
-    private int extension = 0;
-    private int csrcCount = 1;
-    private int marker = 0;
-    private int payloadType = 8;
     private int sequenceNumber = 0;
-    private long timestamp = 1;
 
 
-
-    //private int length = 12 + 200;
-    private byte buf[];// = new byte[12 + data.get(0).length]; //allocate this big enough to hold the RTP header + audio data
-    private byte temp[];
-    private byte combined[];
+    private byte buf[];
 
 
 
@@ -59,12 +25,10 @@ public class ToFile {
     public void urlToFile(String url) throws IOException {
         URL site = new URL(url);
         siteImage = ImageIO.read(site);
-        //System.out.println(siteImage.getType());
     }
 
     public ArrayList<byte[]> udpData(){
         sequenceNumber = 0;
-        //int rowNum = 0;
         int currentX = 0;
         int currentY = 0;
         ArrayList<byte[]> bytes = new ArrayList<>();
@@ -86,7 +50,6 @@ public class ToFile {
                     currentX = 0;
                     if(currentY != siteImage.getHeight()){
                         currentY++;
-                        //rowNum++;
                         break;
                     }
                     break;

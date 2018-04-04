@@ -81,9 +81,7 @@ public class UDPServer {
                     try {
                         data = new DatagramPacket(bytesToSend.get(i), bytesToSend.get(i).length, sendAddress, urlPack.getPort());
                         server.send(data);
-                        //System.out.println("Sent packet");
                         server.receive(ack);
-                        //System.out.println("Received ack");
                     }catch(Exception e){
                         i--;
                     }
@@ -95,7 +93,6 @@ public class UDPServer {
                 int test;
                 data = new DatagramPacket(bytesToSend.get(0), bytesToSend.get(0).length, sendAddress, urlPack.getPort());
                 server.send(data);
-                int counter = 0;
                 while(packetNumsToSend.size() != 0){
 
                     for(int i = 0; i < windowSize; i++){
@@ -112,14 +109,6 @@ public class UDPServer {
                     for(int i = 0; i < splitResult.length - 1; i++){
                         packetNumsToSend.remove((Integer) Integer.parseInt(splitResult[i].trim()));
                     }
-                    if(result.equals(" ")){
-
-                    }
-                    else {
-                        //System.out.println(result + "    " + counter);
-                    }
-                    result = "";
-                    counter++;
                 }
                 server.send(new DatagramPacket(new byte[4], 4, sendAddress, urlPack.getPort()));
             }
