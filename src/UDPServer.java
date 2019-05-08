@@ -93,21 +93,26 @@ public class UDPServer {
                 int test;
                 data = new DatagramPacket(bytesToSend.get(0), bytesToSend.get(0).length, sendAddress, urlPack.getPort());
                 server.send(data);
+                server.setSoTimeout(500);
                 while(packetNumsToSend.size() != 0){
-
-                    for(int i = 0; i < windowSize; i++){
-                        if(packetNumsToSend.size() > i) {
-                            test = packetNumsToSend.get(i);
-                            data = new DatagramPacket(bytesToSend.get(test), bytesToSend.get(test).length, sendAddress, urlPack.getPort());
-                            server.send(data);
+                    try {
+                        for (int i = 0; i < windowSize; i++) {
+                            if (packetNumsToSend.size() > i) {
+                                test = packetNumsToSend.get(i);
+                                data = new DatagramPacket(bytesToSend.get(test), bytesToSend.get(test).length, sendAddress, urlPack.getPort());
+                                server.send(data);
+                            }
+                        }
+                        data = new DatagramPacket(new byte[200], 200);
+                        server.receive(data);
+                        result = new String(data.getData());
+                        splitResult = result.split(" ");
+                        for (int i = 0; i < splitResult.length - 1; i++) {
+                            packetNumsToSend.remove((Integer) Integer.parseInt(splitResult[i].trim()));
                         }
                     }
-                    data = new DatagramPacket(new byte[200], 200);
-                    server.receive(data);
-                    result = new String(data.getData());
-                    splitResult = result.split(" ");
-                    for(int i = 0; i < splitResult.length - 1; i++){
-                        packetNumsToSend.remove((Integer) Integer.parseInt(splitResult[i].trim()));
+                    catch (SocketTimeoutException e){
+                        System.out.println("Results not received, resending window");
                     }
                 }
                 server.send(new DatagramPacket(new byte[4], 4, sendAddress, urlPack.getPort()));

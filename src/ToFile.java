@@ -41,7 +41,7 @@ public class ToFile {
             sequenceNumber++;
 
             for(int i = 4; i < 516; i+=4){
-                System.out.println("Sequence Num: " + sequenceNumber + "    X: " + currentX + "   Y: " + currentY);
+                //System.out.println("Sequence Num: " + sequenceNumber + "    X: " + currentX + "   Y: " + currentY);
                 buf[i] = (byte)((siteImage.getRGB(currentX, currentY)& 0xff000000) >> 24);
                 buf[i+1] = (byte)((siteImage.getRGB(currentX, currentY)& 0x00ff0000) >> 16);
                 buf[i+2] = (byte)((siteImage.getRGB(currentX, currentY)& 0x0000ff00) >> 8);
